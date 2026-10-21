@@ -1,20 +1,30 @@
-import { initialState, transition, decodeSave, EVIDENCE, INTRODUCTION, RECOLLECTION, REQUIRED, HINTS, OWNERS, DESTINATIONS, canSubmit } from './game.js';
+import { initialState, decodeSave, EVIDENCE, INTRODUCTION, RECOLLECTION, REQUIRED, HINTS, OWNERS, DESTINATIONS, canSubmit } from './game.js';
 import { createWatchViewer } from './watch-viewer.js';
-import { createChapterUI } from './chapter-ui.js';
+import { createChapterUI } from './chapter-ui.js?v=menu-1';
 import { CHAPTERS } from './chapters.js';
+import { createSession, decodeSession, startNew, startReplay, sessionAction } from './play-session.js';
 
 const $ = id => document.getElementById(id);
 const saveKey = 'tsukimachi/inspection-v1';
+const sessionKey = 'tsukimachi/inspection-session-v1';
 const inspect = $('inspect-dialog'), story = $('story-dialog');
-let state = initialState(), savingDisabled = false, viewer = null, returnFocus = null, toastTimer, chapterUI;
-try { const raw = localStorage.getItem(saveKey); if (raw) state = decodeSave(raw); }
+let session = createSession(), state = session.main, replaying = false, menuOpen = true, savingDisabled = false, viewer = null, returnFocus = null, toastTimer, chapterUI;
+try { const raw = localStorage.getItem(sessionKey), legacy = localStorage.getItem(saveKey); session = raw ? decodeSession(raw) : createSession(legacy ? decodeSave(legacy) : initialState()); state = session.main; }
 catch { savingDisabled = true; $('save-warning').hidden = false; $('save-warning').textContent = '保存データを読み込めませんでした。この試遊は保存せず進めます。以前のデータは上書きしません。'; }
 function escape(text) { return String(text).replace(/[&<>"']/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[character]); }
 function toast(message) { $('toast').textContent = message; $('toast').classList.add('visible'); clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').classList.remove('visible'), 3500); }
-function save() { if (savingDisabled) return; try { localStorage.setItem(saveKey, JSON.stringify(state)); } catch { $('save-warning').hidden = false; $('save-warning').textContent = 'このブラウザーに保存できませんでした。ページを閉じると今回の進行が失われることがあります。'; } }
-function act(action) { const result = transition(state, action); state = result.state; save(); renderRoom(); syncMusic(); return result.message; }
+function save() { if (savingDisabled) return; try { localStorage.setItem(sessionKey, JSON.stringify(session)); } catch { $('save-warning').hidden = false; $('save-warning').textContent = 'このブラウザーに保存できませんでした。ページを閉じると今回の進行が失われることがあります。'; } }
+function act(action) { const result = sessionAction(session, action, replaying); session = result.session; state = replaying ? session.replay : session.main; save(); renderRoom(); syncMusic(); return result.message; }
 function renderRoom() {
+  $('play-mode').textContent = replaying ? '章の遊び直し · 本編の続きは保存中' : '';
   if (state.chapter > 1) { chapterUI?.renderRoom(); return; }
+  $('chapter-label').textContent = 'CHAPTER 01 · 月待駅'; $('chapter-title').textContent = '最後の列車';
+  $('room').classList.remove('later-chapter'); document.body.classList.remove('morning');
+  $('room-image').src = './assets/station.png'; $('watch').classList.remove('chapter-item');
+  $('watch-image').src = './assets/watch-front.png'; $('watch').setAttribute('aria-label', '受け取り棚の懐中時計を手に取る');
+  $('ticket').hidden = false; $('timetable').hidden = false; $('chapter-docs').innerHTML = '';
+  $('board-caption').textContent = '最終運行表'; $('timetable').setAttribute('aria-label', '壁の最終運行表を調べる');
+  $('drawer-tag').textContent = '修理の記録'; $('drawer').setAttribute('aria-label', '左の引き出しを開けて修理台帳を調べる'); $('box-caption').textContent = '返却箱';
   const count = REQUIRED.filter(id => state.viewed.includes(id)).length;
   $('clue-count').textContent = `${count} / 4`;
   $('room').classList.toggle('finished', state.returned);
@@ -22,11 +32,11 @@ function renderRoom() {
   $('scene-note').textContent = state.returned ? '返した品物に残っていた、誰かの記憶。' : state.viewed.includes('watchBack') ? '裏ぶたの「417」。記録と照らし合わせよう。' : state.received ? '時計には、まだ見ていない面がある。' : '棚のベルが鳴った。時計と切符が届いている。';
   $('return-box').setAttribute('aria-label', state.returned ? '返却箱に残った控えを読む' : '右の返却箱を調べる');
 }
-function closeInspection() { if (state.phase === 'title') return; viewer?.dispose(); viewer = null; inspect.close(); document.body.classList.remove('modal-open'); returnFocus?.focus({ preventScroll: true }); }
+function closeInspection() { if (menuOpen) return; viewer?.dispose(); viewer = null; inspect.close(); document.body.classList.remove('modal-open'); returnFocus?.focus({ preventScroll: true }); }
 function openInspection(title, kind, html, after) {
   if (inspect.open) { viewer?.dispose(); viewer = null; } else returnFocus = document.activeElement;
   $('inspect-title').textContent = title; $('inspect-kind').textContent = kind; $('inspect-content').innerHTML = html;
-  $('close-inspect').hidden = state.phase === 'title';
+  $('close-inspect').hidden = menuOpen;
   if (!inspect.open) inspect.showModal(); inspect.scrollTop = 0; document.body.classList.add('modal-open'); after?.();
 }
 $('close-inspect').addEventListener('click', closeInspection);
@@ -67,6 +77,7 @@ function form(message = '') {
 }
 $('return-box').onclick = () => form();
 function showReceipt() {
+  if (replaying) return replayComplete();
   openInspection('返却控え', '第一話 · 了 / 全十話', paper('receipt') + '<p>置いていったものも、忘れものになるんだ。</p><button class="primary" id="next-chapter">第二話「鳴らなかった音楽箱」へ</button><button class="quiet" id="replay">品物に残った記憶を読み返す</button> <button class="quiet" id="inspect-again">時計の操作をもう一度試す</button>', () => { $('next-chapter').onclick = () => { act({ type: 'NEXT_CHAPTER' }); closeInspection(); showStory(); }; $('replay').onclick = () => { act({ type: 'REPLAY' }); closeInspection(); showStory(); }; $('inspect-again').onclick = openWatch; });
 }
 function showStory() {
@@ -97,6 +108,7 @@ const audio = new Audio(); audio.preload = 'none'; let musicIndex = 0, unlocked 
 const specialSongs = { memory: { file: 'memory.wav', name: '窓口の灯り · 回想' }, letter: { file: 'letter.wav', name: '窓口の灯り · 手紙' } };
 const activeSong = () => specialSongs[musicScene] || songs[musicIndex];
 function syncMusic() {
+  if (menuOpen) { audio.pause(); return; }
   const desired = state.chapter === 10 ? 'letter' : state.phase === 'recollection' || state.chapterProgress?.stage === 'recollection' ? 'memory' : 'main';
   if (desired === musicScene) return;
   musicScene = desired; audio.pause(); audio.loop = desired !== 'main'; audio.src = new URL(`./assets/${activeSong().file}`, import.meta.url).href; audioError = ''; playMusic();
@@ -119,7 +131,7 @@ $('settings').onclick = () => openInspection('設定', '窓口で過ごす時間
   $('audio-toggle').onclick = () => { const enabled = !state.bgmEnabled || !unlocked; unlocked = true; act({ type: 'BGM', value: enabled }); if (enabled) playMusic(); else audio.pause(); refreshAudio(); };
   $('read-intro').onclick = () => { openInspection('夜の受付', 'この話の序章', (CHAPTERS[state.chapter]?.intro || INTRODUCTION).map(text => `<article class="archive-note"><p>${escape(text)}</p></article>`).join('')); };
 });
-chapterUI = createChapterUI({ getState: () => state, act, escape, openInspection, closeInspection, toast, setViewer: value => { viewer = value; } });
+chapterUI = createChapterUI({ getState: () => state, act, escape, openInspection, closeInspection, toast, isReplay: () => replaying, replayComplete, setViewer: value => { viewer = value; } });
 const firstJournal = $('journal').onclick, firstHint = $('hint').onclick;
 $('watch').onclick = () => state.chapter > 1 ? chapterUI.openItem() : openWatch();
 $('drawer').onclick = () => state.chapter > 1 ? chapterUI.drawer() : (collect('repairLedger'), openInspection('資料の引き出し', 'そっと開けると、修理の記録がある', paper('repairLedger', ['製造番号', '依頼者', '作業'])));
@@ -127,13 +139,43 @@ $('timetable').onclick = () => state.chapter > 1 ? chapterUI.board() : (collect(
 $('return-box').onclick = () => state.chapter > 1 ? chapterUI.returnForm() : form();
 $('journal').onclick = () => state.chapter > 1 ? chapterUI.journal() : firstJournal();
 $('hint').onclick = () => state.chapter > 1 ? chapterUI.hints() : firstHint();
-renderRoom();
-syncMusic();
-if (state.phase === 'title') {
-  openInspection('夜の窓口へ', '忘れもの預かり所 · 触れて調べる試作', '<div class="begin-paper"><p class="eyebrow">CHAPTER 01</p><h3>最後の列車</h3><p>品物に触れて、手に取って。<br>まだ見ていない面に、手がかりがある。</p><button class="primary" id="begin">窓口の灯りを点ける</button><button class="quiet" id="begin-inspection" style="margin-top:14px">操作から試す · 序章をスキップ</button></div>', () => {
-    $('begin').onclick = () => { act({ type: 'START' }); closeInspection(); showStory(); };
-    $('begin-inspection').onclick = () => { act({ type: 'START' }); for (let index = 0; index < INTRODUCTION.length; index++) act({ type: 'ADVANCE' }); closeInspection(); toast('窓口の気になるところを調べてみよう。'); };
+function dismissDialogs() { viewer?.dispose(); viewer = null; inspect.close(); story.close(); document.body.classList.remove('modal-open'); }
+function enterGame(replay = false) {
+  dismissDialogs(); replaying = replay; state = replay ? session.replay : session.main; menuOpen = false;
+  renderRoom(); audio.volume = state.bgmVolume / 100; syncMusic(); playMusic();
+  if (['introduction', 'recollection'].includes(state.phase) || (state.chapter > 1 && ['intro', 'recollection', 'epilogue'].includes(state.chapterProgress.stage))) showStory();
+  else if (state.chapter === 1 && state.phase === 'complete') showReceipt();
+  else if (state.chapter > 1 && state.chapterProgress.stage === 'complete') chapterUI.complete();
+}
+function showMenu() {
+  dismissDialogs(); menuOpen = true; audio.pause();
+  const available = session.main.phase !== 'title';
+  openInspection('忘れもの預かり所', '月待駅 · 触れて調べる全十話', `<div class="start-menu"><p class="menu-intro">置いていったものも、忘れものになるんだ。</p><button class="primary" id="new-game">はじめから</button><button class="quiet" id="continue-game" ${available ? '' : 'disabled'}>つづきから</button><p class="inspect-help">${available ? `第${session.main.chapter}話「${escape(CHAPTERS[session.main.chapter]?.title || '最後の列車')}」から再開` : 'まだ続きの記録はありません。'}</p><button class="quiet" id="chapter-select" ${session.unlocked ? '' : 'disabled'}>クリアした章を遊ぶ</button><p class="inspect-help">${session.unlocked ? `${session.unlocked}話まで選べます。遊び直しても、本編の続きは残ります。` : '章をクリアすると選べるようになります。'}</p></div>`, () => {
+    $('continue-game').onclick = () => enterGame(false);
+    $('chapter-select').onclick = showChapters;
+    $('new-game').onclick = () => available ? confirmNew() : beginNew();
   });
-} else if (['introduction', 'recollection'].includes(state.phase) || (state.chapter > 1 && ['intro', 'recollection', 'epilogue'].includes(state.chapterProgress.stage))) showStory();
-else if (state.chapter === 1 && state.phase === 'complete') showReceipt();
-else if (state.chapter > 1 && state.chapterProgress.stage === 'complete') chapterUI.complete();
+}
+function beginNew() { session = startNew(session); save(); enterGame(false); }
+function confirmNew() {
+  openInspection('はじめから遊びますか？', '本編の進行について', '<p>「つづきから」の記録を、新しい物語で上書きします。</p><p>クリアした章と音量設定は残ります。</p><div class="menu-actions"><button class="primary" id="confirm-new">はじめから遊ぶ</button><button class="quiet" id="cancel-new">やめる</button></div>', () => { $('confirm-new').onclick = beginNew; $('cancel-new').onclick = showMenu; });
+}
+function showChapters() {
+  dismissDialogs(); menuOpen = true; audio.pause();
+  openInspection('クリアした章を遊ぶ', '本編の続きは、そのままに', `<p class="inspect-help">選んだ章を、導入から謎解きまで遊び直せます。</p>${session.replay ? `<button class="quiet" id="resume-replay">第${session.replay.chapter}話の遊び直しを再開</button>` : ''}<div class="chapter-list">${Array.from({ length: 10 }, (_, i) => { const id = i + 1; return `<button class="chapter-choice" data-chapter="${id}" ${id > session.unlocked ? 'disabled' : ''}><span>第${id}話</span><strong>${id <= session.unlocked ? escape(CHAPTERS[id]?.title || '最後の列車') : '未クリア'}</strong></button>`; }).join('')}</div><button class="quiet" id="back-menu">開始画面へ戻る</button>`, () => {
+    for (const button of inspect.querySelectorAll('[data-chapter]')) button.onclick = () => {
+      const chapter = Number(button.dataset.chapter);
+      if (session.replay && !(session.replay.chapter === 1 ? session.replay.phase === 'complete' : session.replay.chapterProgress.stage === 'complete')) {
+        openInspection('遊び直す章を変えますか？', '本編の続きは残ります', '<p>遊び直し中の記録を、選んだ章の最初に置き換えます。</p><button class="primary" id="confirm-replay">この章をはじめから遊ぶ</button><button class="quiet" id="cancel-replay">やめる</button>', () => { $('confirm-replay').onclick = () => beginReplay(chapter); $('cancel-replay').onclick = showChapters; });
+      } else beginReplay(chapter);
+    };
+    if ($('resume-replay')) $('resume-replay').onclick = () => enterGame(true);
+    $('back-menu').onclick = showMenu;
+  });
+}
+function beginReplay(chapter) { session = startReplay(session, chapter); save(); enterGame(true); }
+function replayComplete() {
+  openInspection('章の遊び直し · 了', `第${state.chapter}話「${CHAPTERS[state.chapter]?.title || '最後の列車'}」`, '<p>この章の物語を、もう一度胸にしまった。</p><p class="inspect-help">本編の続きは、開始画面の「つづきから」で再開できます。</p><div class="menu-actions"><button class="primary" id="replay-select">別のクリアした章を遊ぶ</button><button class="quiet" id="replay-menu">開始画面へ戻る</button></div>', () => { $('replay-select').onclick = showChapters; $('replay-menu').onclick = showMenu; });
+}
+$('menu').onclick = showMenu; $('story-menu').onclick = showMenu;
+renderRoom(); showMenu();

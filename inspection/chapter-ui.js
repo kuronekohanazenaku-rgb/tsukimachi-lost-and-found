@@ -114,6 +114,7 @@ export function createChapterUI(api) {
     open('父への返事', '朝の資料室', '<article class="paper"><p>父へ。\n\nうまく言えないことが、私にもあります。\nそれでも、今日は続きを書いてみます。</p><p class="ink-note">最後の一文を、自分の言葉で選ぶ。</p>' + LAST_WORDS.map(value => `<button class="reply-card" data-last-words="${esc(value)}">${esc(value)}</button>`).join('') + '</article><p class="inspect-help">どの言葉でも、気持ちのままに選んでください。</p>', () => { for (const button of $('inspect-content').querySelectorAll('[data-last-words]')) button.onclick = () => { act({ type: 'CH_LAST_WORDS', value: button.dataset.lastWords }); complete(); }; });
   }
   function complete() {
+    if (api.isReplay?.()) return api.replayComplete();
     const { id, c, p } = current();
     const text = id === 10 ? `父へ。\n\n${p.lastWords}。\n\n返事を届ける場所は、もうない。けれど、書きたいことはあった。` : c.time ? `品物：${c.item}\n持ち主：${c.owner}\n届け先：${c.destination}\n受付時刻：10月31日 ${c.time}` : '品物に残った記憶を、胸にしまった。';
     open(id === 10 ? '忘れもの預かり所 · 完' : '窓口に残った記録', `第${numbers[id]}話 · 了 / 全十話`, `<article class="paper"><h3>${esc(c.title)}</h3><p>${esc(text)}</p></article>${id < 10 ? `<button class="primary" id="next-chapter">第${numbers[id + 1]}話「${esc(CHAPTERS[id + 1].title)}」へ</button>` : ''}<button class="quiet" id="chapter-replay">回想を読み返す</button> <button class="quiet" id="chapter-archive">返却控えと過去の記録</button> <button class="quiet" id="chapter-reinspect">品物をもう一度手に取る</button>`, () => {

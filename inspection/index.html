@@ -6,11 +6,11 @@
   <meta name="theme-color" content="#101c21">
   <meta name="description" content="夜の駅をタップし、品物を回して記録をつなぐ。忘れもの預かり所・触れて調べる全10話。">
   <title>忘れもの預かり所 — 触れて調べる全10話</title>
-  <link rel="stylesheet" href="./style.css?v=full10-1">
+  <link rel="stylesheet" href="./style.css?v=menu-1">
 </head>
 <body>
-  <header class="topbar"><a class="brand" href="../">TSUKIMACHI <span>忘れもの預かり所</span></a><span class="edition">触れて調べる · 全10話</span><button id="settings" class="icon-button" aria-label="設定を開く">⚙</button></header>
-  <main>
+  <header class="topbar"><a class="brand" href="../">TSUKIMACHI <span>忘れもの預かり所</span></a><span class="edition">触れて調べる · 全10話</span><button id="menu" class="quiet menu-button">開始画面</button><button id="settings" class="icon-button" aria-label="設定を開く">⚙</button></header>
+  <main><p id="play-mode" class="play-mode" role="status"></p>
     <div class="chapter-heading"><div><p class="eyebrow" id="chapter-label">CHAPTER 01 · 月待駅</p><h1 id="chapter-title">最後の列車</h1></div><p id="objective">気になるものに、触れてみよう。</p></div>
     <section class="room-frame" aria-label="月待駅の忘れもの窓口">
       <div class="room" id="room">
@@ -32,8 +32,8 @@
     <footer>触れて調べる / 全10話 · <a href="../">ボタン式の公開版へ</a></footer>
   </main>
   <dialog id="inspect-dialog" aria-labelledby="inspect-title"><header class="dialog-header"><div><p class="eyebrow" id="inspect-kind">品物を調べる</p><h2 id="inspect-title"></h2></div><button class="close" id="close-inspect" aria-label="窓口へ戻る">×</button></header><div id="inspect-content"></div></dialog>
-  <dialog id="story-dialog" aria-label="物語"><div class="story-atmosphere"></div><div class="story-page" id="story-page" role="button" tabindex="0" aria-label="画面に触れて物語の続きを読む"><p class="eyebrow" id="story-label"></p><p id="story-text"></p><span id="story-next">画面に触れて、つづきを読む →</span></div></dialog>
+  <dialog id="story-dialog" aria-label="物語"><div class="story-atmosphere"></div><button id="story-menu" class="quiet story-menu">開始画面へ</button><div class="story-page" id="story-page" role="button" tabindex="0" aria-label="画面に触れて物語の続きを読む"><p class="eyebrow" id="story-label"></p><p id="story-text"></p><span id="story-next">画面に触れて、つづきを読む →</span></div></dialog>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="./app.js?v=full10-1"></script>
+  <script type="module" src="./app.js?v=menu-1"></script>
 </body>
 </html>
