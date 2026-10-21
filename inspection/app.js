@@ -1,17 +1,20 @@
 import { initialState, transition, decodeSave, EVIDENCE, INTRODUCTION, RECOLLECTION, REQUIRED, HINTS, OWNERS, DESTINATIONS, canSubmit } from './game.js';
 import { createWatchViewer } from './watch-viewer.js';
+import { createChapterUI } from './chapter-ui.js';
+import { CHAPTERS } from './chapters.js';
 
 const $ = id => document.getElementById(id);
 const saveKey = 'tsukimachi/inspection-v1';
 const inspect = $('inspect-dialog'), story = $('story-dialog');
-let state = initialState(), savingDisabled = false, viewer = null, returnFocus = null, toastTimer;
-try { const raw = localStorage.getItem(saveKey); if (raw) { state = decodeSave(raw); if (state.chapter !== 1) throw new Error('Prototype supports chapter one only'); } }
+let state = initialState(), savingDisabled = false, viewer = null, returnFocus = null, toastTimer, chapterUI;
+try { const raw = localStorage.getItem(saveKey); if (raw) state = decodeSave(raw); }
 catch { savingDisabled = true; $('save-warning').hidden = false; $('save-warning').textContent = '保存データを読み込めませんでした。この試遊は保存せず進めます。以前のデータは上書きしません。'; }
 function escape(text) { return String(text).replace(/[&<>"']/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[character]); }
 function toast(message) { $('toast').textContent = message; $('toast').classList.add('visible'); clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').classList.remove('visible'), 3500); }
 function save() { if (savingDisabled) return; try { localStorage.setItem(saveKey, JSON.stringify(state)); } catch { $('save-warning').hidden = false; $('save-warning').textContent = 'このブラウザーに保存できませんでした。ページを閉じると今回の進行が失われることがあります。'; } }
-function act(action) { const result = transition(state, action); state = result.state; save(); renderRoom(); return result.message; }
+function act(action) { const result = transition(state, action); state = result.state; save(); renderRoom(); syncMusic(); return result.message; }
 function renderRoom() {
+  if (state.chapter > 1) { chapterUI?.renderRoom(); return; }
   const count = REQUIRED.filter(id => state.viewed.includes(id)).length;
   $('clue-count').textContent = `${count} / 4`;
   $('room').classList.toggle('finished', state.returned);
@@ -64,9 +67,10 @@ function form(message = '') {
 }
 $('return-box').onclick = () => form();
 function showReceipt() {
-  openInspection('返却控え', '第一話 · 了', paper('receipt') + '<p>置いていったものも、忘れものになるんだ。</p><button class="quiet" id="replay">品物に残った記憶を読み返す</button> <button class="quiet" id="inspect-again">時計の操作をもう一度試す</button><p class="inspect-help">この操作試作は第1話までです。全10話の公開版も、別のセーブで遊べます。</p><a href="../">全10話の公開版へ</a>', () => { $('replay').onclick = () => { act({ type: 'REPLAY' }); closeInspection(); showStory(); }; $('inspect-again').onclick = openWatch; });
+  openInspection('返却控え', '第一話 · 了 / 全十話', paper('receipt') + '<p>置いていったものも、忘れものになるんだ。</p><button class="primary" id="next-chapter">第二話「鳴らなかった音楽箱」へ</button><button class="quiet" id="replay">品物に残った記憶を読み返す</button> <button class="quiet" id="inspect-again">時計の操作をもう一度試す</button>', () => { $('next-chapter').onclick = () => { act({ type: 'NEXT_CHAPTER' }); closeInspection(); showStory(); }; $('replay').onclick = () => { act({ type: 'REPLAY' }); closeInspection(); showStory(); }; $('inspect-again').onclick = openWatch; });
 }
 function showStory() {
+  if (state.chapter > 1) return chapterUI.showStory();
   if (!['introduction', 'recollection'].includes(state.phase)) return;
   const recalling = state.phase === 'recollection', pages = recalling ? RECOLLECTION : INTRODUCTION;
   $('story-label').textContent = `${recalling ? '品物に残った記憶' : '第一話 · 夜の受付'}　${state.storyIndex + 1} / ${pages.length}`;
@@ -75,43 +79,61 @@ function showStory() {
   document.body.classList.add('modal-open'); if (!story.open) story.showModal();
 }
 function advanceStory() {
+  if (state.chapter > 1) return chapterUI.advanceStory();
   act({ type: 'ADVANCE' });
   if (['introduction', 'recollection'].includes(state.phase)) showStory();
-  else { story.close(); document.body.classList.remove('modal-open'); if (state.phase === 'complete') showReceipt(); else toast('棚の時計を手に取り、ドラッグで回してみよう。'); }
+  else { story.close(); document.body.classList.remove('modal-open'); if (state.phase === 'complete') showReceipt(); else toast('窓口の気になるところを調べてみよう。'); }
 }
 $('story-page').onclick = advanceStory;
 $('story-page').onkeydown = event => { if (['Enter', ' '].includes(event.key)) { event.preventDefault(); advanceStory(); } };
 story.addEventListener('cancel', event => event.preventDefault());
-$('hotspots').onclick = () => { const show = !$('room').classList.contains('show-hotspots'); $('room').classList.toggle('show-hotspots', show); $('hotspots').setAttribute('aria-pressed', String(show)); };
 $('journal').onclick = () => openInspection('手がかりの手帳', '確認したことを、書き留める', REQUIRED.map(id => `<article class="archive-note"><h3>${state.viewed.includes(id) ? '✓' : '○'} ${escape(EVIDENCE[id].title)}</h3><p>${state.viewed.includes(id) ? escape(EVIDENCE[id].text || EVIDENCE[id].rows.map(row => row.join(' ／ ')).join('\n')) : id === 'watchBack' ? '時計を手に取り、裏側まで回して調べよう。' : '窓口の品物や家具に触れて、調べてみよう。'}</p></article>`).join(''));
 function hints() {
   openInspection('小さな手がかり', '必要なときだけ、少しずつ', '<p>品物に残されたことと、駅の記録を照らし合わせよう。</p>' + HINTS.slice(0, state.hintLevel).map((text, index) => `<div class="hint-answer"><p class="eyebrow">${index + 1}段階目</p><p>${escape(text)}</p></div>`).join('') + (state.hintLevel < 3 ? `<button class="quiet" id="next-hint">${state.hintLevel === 2 ? '答えを含む最後のヒントを開く' : '次のヒントを開く'}</button>` : ''), () => { if ($('next-hint')) $('next-hint').onclick = () => { act({ type: 'HINT' }); hints(); }; });
 }
 $('hint').onclick = hints;
 const songs = [{ file: 'musicbox.wav', name: '窓口の灯り' }, { file: 'platform.wav', name: '夜更けのホーム' }, { file: 'shelf.wav', name: '小さな預かり棚' }];
-const audio = new Audio(); audio.preload = 'none'; let musicIndex = 0, unlocked = false, audioError = '';
+const audio = new Audio(); audio.preload = 'none'; let musicIndex = 0, unlocked = false, audioError = '', musicScene = '';
+const specialSongs = { memory: { file: 'memory.wav', name: '窓口の灯り · 回想' }, letter: { file: 'letter.wav', name: '窓口の灯り · 手紙' } };
+const activeSong = () => specialSongs[musicScene] || songs[musicIndex];
+function syncMusic() {
+  const desired = state.chapter === 10 ? 'letter' : state.phase === 'recollection' || state.chapterProgress?.stage === 'recollection' ? 'memory' : 'main';
+  if (desired === musicScene) return;
+  musicScene = desired; audio.pause(); audio.loop = desired !== 'main'; audio.src = new URL(`./assets/${activeSong().file}`, import.meta.url).href; audioError = ''; playMusic();
+}
 audio.volume = state.bgmVolume / 100;
 async function playMusic() {
   if (!state.bgmEnabled || !unlocked || document.hidden) return;
-  if (!audio.getAttribute('src')) audio.src = new URL(`./assets/${songs[musicIndex].file}`, import.meta.url).href;
+  if (!audio.getAttribute('src')) audio.src = new URL(`./assets/${activeSong().file}`, import.meta.url).href;
   try { await audio.play(); audioError = ''; } catch (error) { if (error.name !== 'AbortError') audioError = 'BGMを再生できませんでした。もう一度再生してください。'; }
   refreshAudio();
 }
-audio.addEventListener('ended', () => { musicIndex = (musicIndex + 1) % songs.length; audio.src = new URL(`./assets/${songs[musicIndex].file}`, import.meta.url).href; playMusic(); });
+audio.addEventListener('ended', () => { if (musicScene === 'main') musicIndex = (musicIndex + 1) % songs.length; audio.src = new URL(`./assets/${activeSong().file}`, import.meta.url).href; playMusic(); });
 audio.addEventListener('error', () => { audioError = 'BGMの読み込みに失敗しました。通信を確認してください。'; refreshAudio(); });
 audio.addEventListener('playing', refreshAudio); audio.addEventListener('pause', refreshAudio);
 document.addEventListener('visibilitychange', () => { if (document.hidden) { audio.pause(); save(); } else playMusic(); });
-function refreshAudio() { if ($('audio-toggle')) $('audio-toggle').textContent = state.bgmEnabled && unlocked ? 'BGMを止める' : 'オルゴールBGMを聴く'; if ($('audio-state')) $('audio-state').textContent = audioError || (!audio.paused ? `${songs[musicIndex].name} · 再生中` : 'BGM · 停止中'); }
-$('settings').onclick = () => openInspection('設定', '窓口で過ごす時間', '<button class="quiet" id="audio-toggle"></button><p class="inspect-help" id="audio-state" role="status"></p><label class="setting-row">BGMの音量<input id="volume" aria-label="BGMの音量" type="range" min="0" max="100" step="10"><output id="volume-value"></output></label><p class="inspect-help">通常時はオルゴール3曲を順番に再生します。<br>この試作では回想中も同じ曲が流れます。</p><button class="quiet" id="read-intro">序章を読み返す</button><p class="inspect-help">試作の進行は、このブラウザーに保存します。<br>全10話の公開版のセーブとは別です。</p>', () => {
+function refreshAudio() { if ($('audio-toggle')) $('audio-toggle').textContent = state.bgmEnabled && unlocked ? 'BGMを止める' : 'オルゴールBGMを聴く'; if ($('audio-state')) $('audio-state').textContent = audioError || (!audio.paused ? `${activeSong().name} · 再生中` : 'BGM · 停止中'); }
+$('settings').onclick = () => openInspection('設定', '窓口で過ごす時間', '<button class="quiet" id="audio-toggle"></button><p class="inspect-help" id="audio-state" role="status"></p><label class="setting-row">BGMの音量<input id="volume" aria-label="BGMの音量" type="range" min="0" max="100" step="10"><output id="volume-value"></output></label><p class="inspect-help">通常時はオルゴール3曲を順番に再生します。<br>回想と手紙では専用曲に切り替わります。</p><button class="quiet" id="read-intro">序章を読み返す</button><p class="inspect-help">試作の進行は、このブラウザーに保存します。<br>全10話の公開版のセーブとは別です。</p>', () => {
   refreshAudio(); $('volume').value = state.bgmVolume; $('volume-value').textContent = `${state.bgmVolume}%`;
   $('volume').oninput = event => { act({ type: 'BGM_VOLUME', value: Number(event.target.value) }); audio.volume = state.bgmVolume / 100; $('volume-value').textContent = `${state.bgmVolume}%`; };
   $('audio-toggle').onclick = () => { const enabled = !state.bgmEnabled || !unlocked; unlocked = true; act({ type: 'BGM', value: enabled }); if (enabled) playMusic(); else audio.pause(); refreshAudio(); };
-  $('read-intro').onclick = () => { openInspection('夜の受付', '第一話 · 序章', INTRODUCTION.map(text => `<article class="archive-note"><p>${escape(text)}</p></article>`).join('')); };
+  $('read-intro').onclick = () => { openInspection('夜の受付', 'この話の序章', (CHAPTERS[state.chapter]?.intro || INTRODUCTION).map(text => `<article class="archive-note"><p>${escape(text)}</p></article>`).join('')); };
 });
+chapterUI = createChapterUI({ getState: () => state, act, escape, openInspection, closeInspection, toast, setViewer: value => { viewer = value; } });
+const firstJournal = $('journal').onclick, firstHint = $('hint').onclick;
+$('watch').onclick = () => state.chapter > 1 ? chapterUI.openItem() : openWatch();
+$('drawer').onclick = () => state.chapter > 1 ? chapterUI.drawer() : (collect('repairLedger'), openInspection('資料の引き出し', 'そっと開けると、修理の記録がある', paper('repairLedger', ['製造番号', '依頼者', '作業'])));
+$('timetable').onclick = () => state.chapter > 1 ? chapterUI.board() : (collect('timetable'), openInspection('壁の運行表', '十月三十一日 · 最後の日', paper('timetable', ['便名', '出発時刻', '行き先'])));
+$('return-box').onclick = () => state.chapter > 1 ? chapterUI.returnForm() : form();
+$('journal').onclick = () => state.chapter > 1 ? chapterUI.journal() : firstJournal();
+$('hint').onclick = () => state.chapter > 1 ? chapterUI.hints() : firstHint();
 renderRoom();
+syncMusic();
 if (state.phase === 'title') {
   openInspection('夜の窓口へ', '忘れもの預かり所 · 触れて調べる試作', '<div class="begin-paper"><p class="eyebrow">CHAPTER 01</p><h3>最後の列車</h3><p>品物に触れて、手に取って。<br>まだ見ていない面に、手がかりがある。</p><button class="primary" id="begin">窓口の灯りを点ける</button><button class="quiet" id="begin-inspection" style="margin-top:14px">操作から試す · 序章をスキップ</button></div>', () => {
     $('begin').onclick = () => { act({ type: 'START' }); closeInspection(); showStory(); };
-    $('begin-inspection').onclick = () => { act({ type: 'START' }); for (let index = 0; index < INTRODUCTION.length; index++) act({ type: 'ADVANCE' }); closeInspection(); toast('棚の時計を手に取り、ドラッグで回してみよう。'); };
+    $('begin-inspection').onclick = () => { act({ type: 'START' }); for (let index = 0; index < INTRODUCTION.length; index++) act({ type: 'ADVANCE' }); closeInspection(); toast('窓口の気になるところを調べてみよう。'); };
   });
-} else if (['introduction', 'recollection'].includes(state.phase)) showStory();
+} else if (['introduction', 'recollection'].includes(state.phase) || (state.chapter > 1 && ['intro', 'recollection', 'epilogue'].includes(state.chapterProgress.stage))) showStory();
+else if (state.chapter === 1 && state.phase === 'complete') showReceipt();
+else if (state.chapter > 1 && state.chapterProgress.stage === 'complete') chapterUI.complete();

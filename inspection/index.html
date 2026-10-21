@@ -4,35 +4,36 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#101c21">
-  <meta name="description" content="夜の駅をタップし、懐中時計を指で回して調べる。忘れもの預かり所・第1話の操作試作。">
-  <title>忘れもの預かり所 — 触れて調べる試作</title>
-  <link rel="stylesheet" href="./style.css">
+  <meta name="description" content="夜の駅をタップし、品物を回して記録をつなぐ。忘れもの預かり所・触れて調べる全10話。">
+  <title>忘れもの預かり所 — 触れて調べる全10話</title>
+  <link rel="stylesheet" href="./style.css?v=full10-1">
 </head>
 <body>
-  <header class="topbar"><a class="brand" href="../">TSUKIMACHI <span>忘れもの預かり所</span></a><span class="edition">触れて調べる · 第1話試作</span><button id="settings" class="icon-button" aria-label="設定を開く">⚙</button></header>
+  <header class="topbar"><a class="brand" href="../">TSUKIMACHI <span>忘れもの預かり所</span></a><span class="edition">触れて調べる · 全10話</span><button id="settings" class="icon-button" aria-label="設定を開く">⚙</button></header>
   <main>
-    <div class="chapter-heading"><div><p class="eyebrow">CHAPTER 01 · 月待駅</p><h1>最後の列車</h1></div><p id="objective">気になるものに、触れてみよう。</p></div>
+    <div class="chapter-heading"><div><p class="eyebrow" id="chapter-label">CHAPTER 01 · 月待駅</p><h1 id="chapter-title">最後の列車</h1></div><p id="objective">気になるものに、触れてみよう。</p></div>
     <section class="room-frame" aria-label="月待駅の忘れもの窓口">
       <div class="room" id="room">
-        <img class="room-image" src="./assets/station.png" alt="夜の月待駅。左に資料の引き出し、中央に受け取り棚、右に木の返却箱がある。" draggable="false">
+        <img class="room-image" id="room-image" src="./assets/station.png" alt="月待駅の忘れもの窓口。品物と記録が残っている。" draggable="false">
         <div class="room-shade"></div>
-        <button class="hotspot clock-prop" id="wall-clock" aria-label="壁の駅時計を調べる"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="47" fill="#694f31" stroke="#c7ab72" stroke-width="3"/><circle cx="50" cy="50" r="41" fill="#d8c9a1"/><text x="50" y="25" text-anchor="middle">12</text><text x="79" y="55" text-anchor="middle">3</text><text x="50" y="84" text-anchor="middle">6</text><text x="21" y="55" text-anchor="middle">9</text><path d="M50 50L41 75M50 50L25 64" stroke="#382e22" stroke-width="3"/><circle cx="50" cy="50" r="3" fill="#382e22"/></svg><span class="hotspot-label">駅時計</span></button>
-        <button class="hotspot timetable-prop" id="timetable" aria-label="壁の最終運行表を調べる"><span class="pin"></span><span class="paper-title">最終運行表</span><span class="paper-lines" aria-hidden="true">──────<br>── ───<br>── ───<br>── ───</span><span class="hotspot-label">最終運行表</span></button>
-        <button class="hotspot drawer-hotspot" id="drawer" aria-label="左の引き出しを開けて修理台帳を調べる"><span class="hotspot-label">資料の引き出し</span><span class="drawer-tag" aria-hidden="true">修理の記録</span></button>
-        <button class="hotspot watch-prop" id="watch" aria-label="受け取り棚の懐中時計を手に取る"><img src="./assets/watch-front.png" alt="" draggable="false"><span class="hotspot-label">懐中時計</span></button>
-        <button class="hotspot ticket-prop" id="ticket" aria-label="受け取り棚の古い切符を調べる"><span class="ticket-mini" aria-hidden="true">月待駅<br><small>最終07便</small></span><span class="hotspot-label">古い切符</span></button>
-        <button class="hotspot return-hotspot" id="return-box" aria-label="右の返却箱を調べる"><span class="box-tag" aria-hidden="true">返却箱</span><span class="hotspot-label">宛名を書いて返す</span></button>
+        <button class="hotspot clock-prop" id="wall-clock" aria-label="壁の駅時計を調べる"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="47" fill="#694f31" stroke="#c7ab72" stroke-width="3"/><circle cx="50" cy="50" r="41" fill="#d8c9a1"/><text x="50" y="25" text-anchor="middle">12</text><text x="79" y="55" text-anchor="middle">3</text><text x="50" y="84" text-anchor="middle">6</text><text x="21" y="55" text-anchor="middle">9</text><path d="M50 50L41 75M50 50L25 64" stroke="#382e22" stroke-width="3"/><circle cx="50" cy="50" r="3" fill="#382e22"/></svg></button>
+        <button class="hotspot timetable-prop" id="timetable" aria-label="壁の最終運行表を調べる"><span class="pin"></span><span class="paper-title" id="board-caption">最終運行表</span><span class="paper-lines" aria-hidden="true">──────<br>── ───<br>── ───<br>── ───</span></button>
+        <button class="hotspot drawer-hotspot" id="drawer" aria-label="左の引き出しを開けて修理台帳を調べる"><span class="drawer-tag" id="drawer-tag" aria-hidden="true">修理の記録</span></button>
+        <button class="hotspot watch-prop" id="watch" aria-label="受け取り棚の懐中時計を手に取る"><img id="watch-image" src="./assets/watch-front.png" alt="" draggable="false"></button>
+        <button class="hotspot ticket-prop" id="ticket" aria-label="受け取り棚の古い切符を調べる"><span class="ticket-mini" aria-hidden="true">月待駅<br><small>最終07便</small></span></button>
+        <button class="hotspot return-hotspot" id="return-box" aria-label="右の返却箱を調べる"><span class="box-tag" id="box-caption" aria-hidden="true">返却箱</span></button>
+        <div id="chapter-docs"></div>
         <span class="room-caption">十月三十一日 · 閉館後</span>
       </div>
     </section>
-    <section class="under-scene"><p class="scene-note" id="scene-note">窓口の灯りが、静かに揺れている。</p><div class="tools"><button id="journal">手がかり <span id="clue-count">0 / 4</span></button><button id="hotspots" aria-pressed="false">調べる場所</button><button id="hint">小さなヒント</button></div></section>
-    <p class="guide">背景の品物や家具にタップ。時計は手に取って、ドラッグで回せます。</p>
+    <section class="under-scene"><p class="scene-note" id="scene-note">窓口の灯りが、静かに揺れている。</p><div class="tools"><button id="journal">手がかり <span id="clue-count">0 / 4</span></button><button id="hint">小さなヒント</button></div></section>
+    <p class="guide">気になるものをタップして調べる。手に取った品物はドラッグで回せます。</p>
     <p id="save-warning" role="status" hidden></p>
-    <footer>操作試作 / 第1話のみ · <a href="../">全10話の公開版へ</a></footer>
+    <footer>触れて調べる / 全10話 · <a href="../">ボタン式の公開版へ</a></footer>
   </main>
   <dialog id="inspect-dialog" aria-labelledby="inspect-title"><header class="dialog-header"><div><p class="eyebrow" id="inspect-kind">品物を調べる</p><h2 id="inspect-title"></h2></div><button class="close" id="close-inspect" aria-label="窓口へ戻る">×</button></header><div id="inspect-content"></div></dialog>
   <dialog id="story-dialog" aria-label="物語"><div class="story-atmosphere"></div><div class="story-page" id="story-page" role="button" tabindex="0" aria-label="画面に触れて物語の続きを読む"><p class="eyebrow" id="story-label"></p><p id="story-text"></p><span id="story-next">画面に触れて、つづきを読む →</span></div></dialog>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="./app.js"></script>
+  <script type="module" src="./app.js?v=full10-1"></script>
 </body>
 </html>
