@@ -115,7 +115,7 @@ function syncMusic() {
 }
 audio.volume = state.bgmVolume / 100;
 async function playMusic() {
-  if (!state.bgmEnabled || !unlocked || document.hidden) return;
+  if (menuOpen || !state.bgmEnabled || !unlocked || document.hidden) return;
   if (!audio.getAttribute('src')) audio.src = new URL(`./assets/${activeSong().file}`, import.meta.url).href;
   try { await audio.play(); audioError = ''; } catch (error) { if (error.name !== 'AbortError') audioError = 'BGMを再生できませんでした。もう一度再生してください。'; }
   refreshAudio();
