@@ -1,8 +1,8 @@
-import { CHAPTERS, LAST_WORDS, chapterCanSubmit } from './chapters.js';
-import { EVIDENCE, RECOLLECTION } from './game.js';
-import { createItemViewer } from './item-viewer.js?v=detail-1';
-import { itemImage, imageTools, bindImageTools } from './inspection-art.js';
-import { visibleChapterDocuments, dropAction, pieceLabel } from './chapter-presentation.js';
+import { CHAPTERS, LAST_WORDS, chapterCanSubmit } from './chapters.js?v=cipher-1';
+import { EVIDENCE, RECOLLECTION } from './game.js?v=cipher-1';
+import { createItemViewer } from './item-viewer.js?v=cipher-1';
+import { itemImage, imageTools, bindImageTools } from './inspection-art.js?v=cipher-1';
+import { visibleChapterDocuments, dropAction, pieceLabel } from './chapter-presentation.js?v=cipher-1';
 
 const numbers = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
 export function createChapterUI(api) {
@@ -61,14 +61,20 @@ export function createChapterUI(api) {
   function board() { const { id, p } = current(); const key = visibleChapterDocuments(id, p)[0]; if (key) openDoc(key); }
   function puzzle(message = '', back = false, selected = '') {
     const { id, c, p } = current(), q = c.puzzle; if (!q) return;
+    const cipherPanel = q.cipher ? `<section class="cipher-panel"><h3>集めた資料を組み合わせる</h3><p>${esc(q.cipher.instruction)}</p><label for="cipher-input">確認番号（4桁）</label><input id="cipher-input" aria-label="確認番号（4桁）" inputmode="numeric" autocomplete="off" maxlength="4" pattern="[0-9]{4}" value="${esc(p.cipherInput || '')}" ${p.solved ? 'disabled' : ''}><div class="cipher-sources">${q.cipher.sources.map(key => p.viewed.includes(key) ? `<details class="cipher-note"><summary>${esc(c.docs[key].title)}</summary><p>${esc(c.docs[key].text)}</p></details>` : `<p class="missing">未確認：${esc(c.docs[key].title)}。窓口で資料を探そう。</p>`).join('')}</div></section>` : '';
     if (!p.received) { act({ type: 'CH_RECEIVE' }); act({ type: 'CH_VIEW', id: 'item' }); }
     const fragment = value => {
       if (!q.grid || !value || back) return '';
       const quadrant = q.answer.indexOf(value), x = quadrant % 2 ? '100%' : '0%', y = quadrant > 1 ? '100%' : '0%';
       return `<span class="photo-piece" style="background-position:${x} ${y}" aria-hidden="true"></span>`;
     };
-    open(q.title, '品物を動かして、記録をつなぐ', `<p>${esc(q.instruction)}</p><p class="inspect-help">部品を枠までドラッグ。タップで品物を選び、枠を押して置くこともできます。</p>${q.grid ? `<button class="quiet" id="photo-side">写真の${back ? '表' : '裏'}を見る</button>` : ''}<div class="puzzle-pieces ${q.grid ? 'photo-pieces' : ''}">${q.choices.map(value => `<button class="puzzle-token ${selected === value ? 'selected' : ''}" data-piece="${esc(value)}" aria-label="${esc(pieceLabel(q, value, back))}" aria-pressed="${selected === value}" ${p.solved ? 'disabled' : ''}>${fragment(value)}<span>${esc(pieceLabel(q, value, back))}</span></button>`).join('')}</div><div class="puzzle-slots ${q.grid ? 'photo-slots' : ''}">${p.slots.map((value, slot) => `<button class="puzzle-slot" data-slot="${slot}" aria-label="${slot + 1}番目の枠：${esc(pieceLabel(q, value, back))}" ${p.solved ? 'disabled' : ''}>${fragment(value)}<span>${q.grid ? ['左上', '右上', '左下', '右下'][slot] : `${slot + 1}番目`}：${esc(pieceLabel(q, value, back))}</span></button>`).join('')}</div><p role="status" class="discovery">${esc(message || (p.solved ? '記録と一致した。奥の記録を確認しよう。' : selected ? `${pieceLabel(q, selected, back)}を置く枠を選ぶ。` : '置いた品物は、あとから交換できます。'))}</p>${p.solved ? '<button class="primary" id="read-reveal">開いた記録を読む</button>' : `<button class="primary" id="solve-puzzle" ${p.slots.some(value => !value) ? 'disabled' : ''}>配置を確かめる</button>`}`, () => {
+    open(q.title, '品物を動かして、記録をつなぐ', `<p>${esc(q.instruction)}</p><p class="inspect-help">部品を枠までドラッグ。タップで品物を選び、枠を押して置くこともできます。</p>${q.grid ? `<button class="quiet" id="photo-side">写真の${back ? '表' : '裏'}を見る</button>` : ''}<div class="puzzle-pieces ${q.grid ? 'photo-pieces' : ''}">${q.choices.map(value => `<button class="puzzle-token ${selected === value ? 'selected' : ''}" data-piece="${esc(value)}" aria-label="${esc(pieceLabel(q, value, back))}" aria-pressed="${selected === value}" ${p.solved ? 'disabled' : ''}>${fragment(value)}<span>${esc(pieceLabel(q, value, back))}</span></button>`).join('')}</div><div class="puzzle-slots ${q.grid ? 'photo-slots' : ''}">${p.slots.map((value, slot) => `<button class="puzzle-slot" data-slot="${slot}" aria-label="${slot + 1}番目の枠：${esc(pieceLabel(q, value, back))}" ${p.solved ? 'disabled' : ''}>${fragment(value)}<span>${q.grid ? ['左上', '右上', '左下', '右下'][slot] : `${slot + 1}番目`}：${esc(pieceLabel(q, value, back))}</span></button>`).join('')}</div>${cipherPanel}<p role="status" class="discovery">${esc(message || (p.solved ? '記録と一致した。奥の記録を確認しよう。' : selected ? `${pieceLabel(q, selected, back)}を置く枠を選ぶ。` : '置いた品物は、あとから交換できます。'))}</p>${p.solved ? '<button class="primary" id="read-reveal">開いた記録を読む</button>' : `<button class="primary" id="solve-puzzle" ${(p.slots.some(value => !value) || (q.cipher && (p.cipherInput || '').length !== 4)) ? 'disabled' : ''}>${q.cipher ? '配置と番号を照合する' : '配置を確かめる'}</button>`}`, () => {
       if ($('photo-side')) $('photo-side').onclick = () => puzzle('', !back, selected);
+      if ($('cipher-input')) $('cipher-input').oninput = event => {
+        const value = event.target.value.normalize('NFKC').replace(/\D/g, '').slice(0, 4);
+        event.target.value = value; act({ type: 'CH_CODE', value });
+        if ($('solve-puzzle')) $('solve-puzzle').disabled = getState().chapterProgress.slots.some(part => !part) || value.length !== 4;
+      };
       const controller = new AbortController(); let ghost = null;
       setViewer({ dispose() { controller.abort(); ghost?.remove(); } });
       const place = (value, slot) => { const action = dropAction(id, getState().chapterProgress, value, slot); if (action) { act(action); puzzle('', back); } };

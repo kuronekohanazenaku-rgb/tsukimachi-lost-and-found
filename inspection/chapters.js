@@ -155,10 +155,12 @@ export function chapterTransition(id, p, a) {
       if (!c.puzzle || p.solved || !p.received || p.stage !== 'investigation') break;
       const clues = c.required.filter(key => key !== 'reveal');
       if (!clues.every(key => p.viewed.includes(key))) { message = '先に品物と資料を確認しよう。'; break; }
+      if (c.puzzle.cipher && p.cipherInput !== c.puzzle.cipher.answer) { message = '確認番号が記録と合っていない。集めた資料の読み順と変換の決まりを、もう一度照らし合わせよう。'; break; }
       if (p.slots.every((value, i) => value === c.puzzle.answer[i])) next = { ...p, solved: true };
       else message = 'まだ記録と合っていないようだ。置いたものは残しておくので、資料を見ながら確かめよう。';
       break;
     }
+    case 'CH_CODE': if (c.puzzle?.cipher && p.stage === 'investigation' && p.received && !p.solved && typeof a.value === 'string' && /^\d{0,4}$/.test(a.value)) next = { ...p, cipherInput: a.value }; break;
     case 'CH_OWNER': if (p.stage === 'investigation' && c.owners.includes(a.value)) next = { ...p, owner: a.value }; break;
     case 'CH_DESTINATION': if (p.stage === 'investigation' && c.destinations.includes(a.value)) next = { ...p, destination: a.value }; break;
     case 'CH_SUBMIT': {
@@ -190,6 +192,7 @@ export function validChapterProgress(id, p) {
     typeof p.lastWords !== 'string' || (p.lastWords !== '' && (id !== 10 || !LAST_WORDS.includes(p.lastWords))) ||
     (p.stage === 'epilogue' && id !== 10)) return false;
   if (!p.received && (p.viewed.length || p.returned || p.slots.some(Boolean))) return false;
+  if (p.cipherInput !== undefined && (typeof p.cipherInput !== 'string' || !/^\d{0,4}$/.test(p.cipherInput))) return false;
   if (!c.puzzle && !p.solved) return false;
   if (c.puzzle && p.solved && (!p.received || !p.slots.every((v,i) => v === c.puzzle.answer[i]) || !c.required.filter(k => k !== 'reveal').every(k => p.viewed.includes(k)))) return false;
   if (p.viewed.includes('reveal') && !p.solved) return false;
@@ -199,3 +202,6 @@ export function validChapterProgress(id, p) {
   if (id === 10 && p.stage === 'complete' && !LAST_WORDS.includes(p.lastWords)) return false;
   return true;
 }
+
+import { applyCipherContent } from "./cipher-content.js?v=cipher-1";
+applyCipherContent(CHAPTERS);

@@ -1,4 +1,4 @@
-import { CHAPTERS, chapterInitial, chapterTransition, validChapterProgress } from './chapters.js';
+import { CHAPTERS, chapterInitial, chapterTransition, validChapterProgress } from './chapters.js?v=cipher-1';
 export const REQUIRED = ['watchBack', 'ticket', 'repairLedger', 'timetable'];
 export const EVIDENCE = {
   watchFront: { title: '懐中時計・表', text: '針は18時40分を指したまま動かない。駅の壁時計と同じ時刻だ。' },

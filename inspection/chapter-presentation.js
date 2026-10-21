@@ -1,4 +1,4 @@
-import { CHAPTERS } from './chapters.js';
+import { CHAPTERS } from './chapters.js?v=cipher-1';
 
 export function visibleChapterDocuments(id, progress) {
   return Object.keys(CHAPTERS[id].docs).filter(key => key !== 'item' && (key !== 'reveal' || progress.solved));
@@ -16,7 +16,7 @@ export function dropAction(id, progress, value, slot) {
 }
 export function pieceLabel(puzzle, value, back) {
   if (!value) return '空いている枠';
-  if (!puzzle.grid) return value;
+  if (!puzzle.grid) return puzzle.labels?.[value] || value;
   const letter = 'ABCD'[puzzle.choices.indexOf(value)];
   return `写真片${letter}${back ? ` · ${value.split(' · ')[1]}` : ''}`;
 }

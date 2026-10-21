@@ -1,9 +1,9 @@
-import { initialState, decodeSave, EVIDENCE, INTRODUCTION, RECOLLECTION, REQUIRED, HINTS, OWNERS, DESTINATIONS, canSubmit } from './game.js';
-import { createWatchViewer } from './watch-viewer.js?v=detail-1';
-import { itemImage, imageTools, bindImageTools, stationClockImage } from './inspection-art.js';
-import { createChapterUI } from './chapter-ui.js?v=detail-1';
-import { CHAPTERS } from './chapters.js';
-import { createSession, decodeSession, startNew, startReplay, sessionAction } from './play-session.js';
+import { initialState, decodeSave, EVIDENCE, INTRODUCTION, RECOLLECTION, REQUIRED, HINTS, OWNERS, DESTINATIONS, canSubmit } from './game.js?v=cipher-1';
+import { createWatchViewer } from './watch-viewer.js?v=cipher-1';
+import { itemImage, imageTools, bindImageTools, stationClockImage } from './inspection-art.js?v=cipher-1';
+import { createChapterUI } from './chapter-ui.js?v=cipher-1';
+import { CHAPTERS } from './chapters.js?v=cipher-1';
+import { createSession, decodeSession, startNew, startReplay, sessionAction } from './play-session.js?v=cipher-1';
 
 const $ = id => document.getElementById(id);
 const saveKey = 'tsukimachi/inspection-v1';

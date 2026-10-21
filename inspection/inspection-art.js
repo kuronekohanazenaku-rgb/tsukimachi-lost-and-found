@@ -1,9 +1,9 @@
 const esc = value => String(value).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[c]);
 const captions = {
-  musicbox: ['手回し音楽箱', '部品の模様：花・月・鳥'], umbrella: ['青い傘', '貸出番号 U-12'],
+  musicbox: ['手回し音楽箱', '部品の刻み：花Ⅲ・月Ⅱ・鳥Ⅰ'], umbrella: ['青い傘', '貸出番号 U-12'],
   key: ['鍵の刻印', 'K ・ 7 ・ 丸'], notebook: ['予定帳', '10月29日 — 31日'],
   bag: ['職員私物', 'B-204'], box: ['榊 修一の私物箱', '時計・音楽箱・写真'],
-  letter: ['はるちゃんへ', '父さんより'], postcard: ['岬の郵便局で受け取るあなたへ', '佐伯 文'],
+  letter: ['はるちゃんへ', '父さんより'], postcard: ['灯台の町で受け取るあなたへ', '佐伯 文'],
 };
 export function watchFace(back = false) {
   const ticks = Array.from({ length: 60 }, (_, i) => `<path d="M500 ${i % 5 ? 287 : 298}V275" transform="rotate(${i * 6} 500 585)"/>`).join('');

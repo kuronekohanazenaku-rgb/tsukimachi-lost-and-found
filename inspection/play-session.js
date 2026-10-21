@@ -1,5 +1,5 @@
-import { initialState, transition, decodeSave, REQUIRED } from './game.js';
-import { chapterInitial } from './chapters.js';
+import { initialState, transition, decodeSave, REQUIRED } from './game.js?v=cipher-1';
+import { chapterInitial } from './chapters.js?v=cipher-1';
 
 const cleared = s => s.chapter - 1 + Number(s.chapter === 1 ? s.recollectionRead : s.chapterProgress.stage === 'complete' || (s.chapter < 10 && s.chapterProgress.read) || (s.chapter === 10 && Boolean(s.chapterProgress.lastWords)));
 const preferences = s => ({ bgmEnabled: s.bgmEnabled, bgmVolume: s.bgmVolume, textSize: s.textSize });

@@ -32,7 +32,7 @@ export function buildItem(kind, { solved = false } = {}) {
     for (const x of [-0.79, 0.79]) box(0.07, 1.14, 1.14, materials.brass, x, -0.1);
     box(0.23, 0.24, 0.08, materials.brass, 0, 0.3, 0.6);
     label(kind === 'box' ? '榊 修一\n時計 · 音楽箱 · 写真' : '手回し音楽箱', 0, -0.18, 0.574, 1.38, 0.45);
-    label(kind === 'box' ? '職員私物\nB-204' : '月　鳥　花', 0, -0.1, -0.574, 1.4, 0.6, true);
+    label(kind === 'box' ? '職員私物\nB-204' : '月 Ⅱ　鳥 Ⅰ　花 Ⅲ', 0, -0.1, -0.574, 1.4, 0.6, true);
     if (kind === 'musicbox') { const crank = part(new THREE.CylinderGeometry(0.035, 0.035, 0.55, 12), materials.brass, 1.16, -0.1, 0); crank.rotation.z = Math.PI / 2; box(0.08, 0.3, 0.08, materials.brass, 1.4, -0.22); part(new THREE.SphereGeometry(0.08, 12, 8), materials.wood, 1.4, -0.39); }
   } else if (kind === 'key') {
     part(new THREE.TorusGeometry(0.42, 0.095, 12, 56), materials.brass, 0, 0.65);
@@ -60,7 +60,7 @@ export function buildItem(kind, { solved = false } = {}) {
       const map = new THREE.TextureLoader().load(`./assets/${kind}.png`); map.colorSpace = THREE.SRGBColorSpace;
       part(new THREE.PlaneGeometry(w - 0.1, h - 0.1), new THREE.MeshBasicMaterial({ map, transparent: true }), 0, 0, 0.031);
     } else { label('はるちゃんへ\n父さんより', 0, 0, 0.036, 1.7, 1.05); }
-    label(isPhoto ? solved ? '管理番号\nB-204' : '四つの断片\n裏の文字をつなぐ' : isLetter ? '父からの手紙' : '岬の郵便局で受け取るあなたへ\n佐伯 文', 0, 0, -0.036, 1.7, 1.05, true);
+    label(isPhoto ? solved ? '管理番号\nB-204' : '四つの断片\n裏の文字をつなぐ' : isLetter ? '父からの手紙' : '灯台の町で受け取るあなたへ\n佐伯 文', 0, 0, -0.036, 1.7, 1.05, true);
     if (isPhoto && !solved) { box(0.015, h, 0.02, materials.ink, 0, 0, 0.043); box(w, 0.015, 0.02, materials.ink, 0, 0, 0.043); }
   }
   return group;
