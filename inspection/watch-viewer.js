@@ -21,8 +21,8 @@ function dialTexture(back = false) {
   ctx.translate(512, 512); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   if (back) {
     for (const radius of [458, 446, 390]) { ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI * 2); ctx.strokeStyle = '#785a2e'; ctx.lineWidth = radius === 390 ? 2 : 4; ctx.stroke(); }
-    ctx.fillStyle = '#49351f'; ctx.font = '32px serif'; ctx.fillText('製 造 番 号', 0, -106);
-    ctx.font = '142px Georgia,serif'; ctx.fillText('417', 0, 18);
+    ctx.fillStyle = '#271f15'; ctx.font = 'bold 42px sans-serif'; ctx.fillText('製 造 番 号', 0, -106);
+    ctx.font = 'bold 170px Georgia,serif'; ctx.fillText('417', 0, 18);
     ctx.strokeStyle = '#745729'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-175, 118); ctx.lineTo(175, 118); ctx.stroke();
     ctx.font = '21px Georgia,serif'; ctx.fillStyle = '#5c4628'; ctx.fillText('TSUKIMACHI', 0, 174);
     // Four small screws and decorative engraving remain attached to the back.
@@ -51,7 +51,7 @@ export function createWatchViewer(canvas, { onDiscover, onUnavailable }) {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.25;
   const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(38, 1, 0.1, 30);
-  camera.position.set(0, 0.12, 4.9); camera.lookAt(0, 0.12, 0);
+  camera.position.set(0, 0.12, 4.25); camera.lookAt(0, 0.12, 0);
   scene.add(new THREE.HemisphereLight(0xd3e9ef, 0x4a2d13, 2.2));
   const key = new THREE.DirectionalLight(0xffe0a5, 4.4); key.position.set(-3, 4, 5); scene.add(key);
   const rim = new THREE.DirectionalLight(0x9fcee5, 2.8); rim.position.set(4, 1, -3); scene.add(rim);
@@ -64,8 +64,8 @@ export function createWatchViewer(canvas, { onDiscover, onUnavailable }) {
   const body = mesh(new THREE.CylinderGeometry(0.98, 0.98, 0.25, 96), brass); body.rotation.x = Math.PI / 2;
   for (const z of [-0.12, -0.08, 0.07, 0.14]) mesh(new THREE.TorusGeometry(0.96, 0.035, 12, 96), z === 0.14 ? brightBrass : darkBrass, 0, 0, z);
   mesh(new THREE.TorusGeometry(0.89, 0.045, 16, 96), brightBrass, 0, 0, 0.17);
-  mesh(new THREE.CircleGeometry(0.866, 96), new THREE.MeshStandardMaterial({ map: dialTexture(), roughness: 0.85, metalness: 0.03 }), 0, 0, 0.172);
-  const back = mesh(new THREE.CircleGeometry(0.935, 96), new THREE.MeshStandardMaterial({ map: dialTexture(true), metalness: 0.44, roughness: 0.6 }), 0, 0, -0.132); back.rotation.y = Math.PI;
+  mesh(new THREE.CircleGeometry(0.866, 96), new THREE.MeshBasicMaterial({ map: dialTexture(), toneMapped: false }), 0, 0, 0.172);
+  const back = mesh(new THREE.CircleGeometry(0.935, 96), new THREE.MeshBasicMaterial({ map: dialTexture(true), toneMapped: false }), 0, 0, -0.132); back.rotation.y = Math.PI;
   const handMaterial = new THREE.MeshStandardMaterial({ color: 0x302a1f, metalness: 0.4, roughness: 0.4 });
   function hand(length, width, angle, z) {
     const pivot = new THREE.Group(); pivot.rotation.z = -angle; pivot.position.z = z; watch.add(pivot);
@@ -97,7 +97,7 @@ export function createWatchViewer(canvas, { onDiscover, onUnavailable }) {
     watch.quaternion.premultiply(yaw).premultiply(pitch).normalize(); paint();
   }
   function zoom(delta) { camera.position.z = THREE.MathUtils.clamp(camera.position.z + delta, 3.6, 7.2); paint(); }
-  function reset() { watch.quaternion.copy(initial); camera.position.z = 4.9; paint(); }
+  function reset() { watch.quaternion.copy(initial); camera.position.z = 4.25; paint(); }
   function distance() { const pair = [...pointers.values()]; return pair.length > 1 ? Math.hypot(pair[0].x - pair[1].x, pair[0].y - pair[1].y) : 0; }
   canvas.addEventListener('pointerdown', event => { event.preventDefault(); canvas.focus({ preventScroll: true }); canvas.setPointerCapture(event.pointerId); pointers.set(event.pointerId, { x: event.clientX, y: event.clientY }); pinch = distance(); }, { signal: controller.signal });
   canvas.addEventListener('pointermove', event => {

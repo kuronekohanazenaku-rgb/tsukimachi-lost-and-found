@@ -1,12 +1,14 @@
 import * as THREE from './vendor/three.module.min.js';
 
-function labelTexture(text, background = '#d4c49b', foreground = '#493b27') {
-  const canvas = document.createElement('canvas'); canvas.width = 768; canvas.height = 512;
-  const ctx = canvas.getContext('2d'); ctx.fillStyle = background; ctx.fillRect(0, 0, 768, 512);
-  ctx.strokeStyle = foreground; ctx.globalAlpha = 0.25; ctx.lineWidth = 3; ctx.strokeRect(24, 24, 720, 464); ctx.globalAlpha = 1;
-  ctx.fillStyle = foreground; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '44px Georgia,serif';
-  const lines = text.split('\n'); lines.forEach((line, index) => ctx.fillText(line, 384, 256 + (index - (lines.length - 1) / 2) * 70, 670));
-  const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace; return texture;
+function labelTexture(text, background = '#f3e7c7', foreground = '#211d16', aspect = 2) {
+  const canvas = document.createElement('canvas'); canvas.width = 2048; canvas.height = Math.round(2048 / aspect);
+  const ctx = canvas.getContext('2d'); ctx.fillStyle = background; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = foreground; ctx.globalAlpha = 0.3; ctx.lineWidth = 5; ctx.strokeRect(30, 30, canvas.width - 60, canvas.height - 60); ctx.globalAlpha = 1;
+  ctx.fillStyle = foreground; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const lines = text.split('\n'); let size = Math.min(260, (canvas.height - 100) / (lines.length * 1.4));
+  do { ctx.font = `600 ${size}px "Noto Sans JP","Yu Gothic",Meiryo,sans-serif`; if (lines.every(line => ctx.measureText(line).width <= canvas.width - 160)) break; size -= 4; } while (size > 32);
+  lines.forEach((line, index) => ctx.fillText(line, canvas.width / 2, canvas.height / 2 + (index - (lines.length - 1) / 2) * size * 1.4));
+  const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace; texture.anisotropy = 8; return texture;
 }
 export function buildItem(kind, { solved = false } = {}) {
   const group = new THREE.Group();
@@ -20,7 +22,7 @@ export function buildItem(kind, { solved = false } = {}) {
   const part = (geometry, material, x = 0, y = 0, z = 0) => { const mesh = new THREE.Mesh(geometry, material); mesh.position.set(x, y, z); group.add(mesh); return mesh; };
   const box = (w, h, d, material, x = 0, y = 0, z = 0) => part(new THREE.BoxGeometry(w, h, d), material, x, y, z);
   const label = (text, x, y, z, w = 1.4, h = 0.6, back = false, background) => {
-    const mesh = part(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ map: labelTexture(text, background), roughness: 0.8 }), x, y, z);
+    const mesh = part(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: labelTexture(text, background, undefined, w / h), toneMapped: false }), x, y, z);
     if (back) mesh.rotation.y = Math.PI;
     return mesh;
   };
@@ -69,7 +71,7 @@ export function createItemViewer(canvas, kind, { solved, onUnavailable }) {
   try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'low-power' }); }
   catch { onUnavailable(); return { dispose() {}, zoom() {}, reset() {} }; }
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(38, 1, 0.1, 30); camera.position.z = 5.4;
+  const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(38, 1, 0.1, 30); camera.position.z = 4.5;
   scene.add(new THREE.HemisphereLight(0xdbe9ec, 0x342219, 2.4));
   for (const [color, intensity, x, y, z] of [[0xffe1aa, 3.8, -3, 4, 5], [0x9ec6e8, 2, 3, 1, -3]]) { const light = new THREE.DirectionalLight(color, intensity); light.position.set(x, y, z); scene.add(light); }
   const model = buildItem(kind, { solved }); scene.add(model);
@@ -78,7 +80,7 @@ export function createItemViewer(canvas, kind, { solved, onUnavailable }) {
   function draw() { if (disposed || frame !== null) return; frame = requestAnimationFrame(() => { frame = null; if (!disposed) renderer.render(scene, camera); }); }
   function rotate(dx, dy) { const scale = Math.PI * 2 / Math.max(220, canvas.clientWidth); model.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), dx * scale)).premultiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), dy * scale)).normalize(); draw(); }
   function zoom(delta) { camera.position.z = THREE.MathUtils.clamp(camera.position.z + delta, 3.8, 8); draw(); }
-  function reset() { model.quaternion.copy(initial); camera.position.z = 5.4; draw(); }
+  function reset() { model.quaternion.copy(initial); camera.position.z = 4.5; draw(); }
   const distance = () => { const p = [...pointers.values()]; return p.length > 1 ? Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) : 0; };
   canvas.addEventListener('pointerdown', e => { e.preventDefault(); canvas.focus({ preventScroll: true }); canvas.setPointerCapture(e.pointerId); pointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); pinch = distance(); }, { signal: controller.signal });
   canvas.addEventListener('pointermove', e => { const prior = pointers.get(e.pointerId); if (!prior) return; pointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (pointers.size === 1) rotate(e.clientX - prior.x, e.clientY - prior.y); else { const next = distance(); if (pinch) zoom((pinch - next) * 0.012); pinch = next; } }, { signal: controller.signal });

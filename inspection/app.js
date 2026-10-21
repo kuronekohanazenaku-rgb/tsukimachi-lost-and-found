@@ -1,6 +1,7 @@
 import { initialState, decodeSave, EVIDENCE, INTRODUCTION, RECOLLECTION, REQUIRED, HINTS, OWNERS, DESTINATIONS, canSubmit } from './game.js';
-import { createWatchViewer } from './watch-viewer.js';
-import { createChapterUI } from './chapter-ui.js?v=menu-1';
+import { createWatchViewer } from './watch-viewer.js?v=detail-1';
+import { itemImage, imageTools, bindImageTools, stationClockImage } from './inspection-art.js';
+import { createChapterUI } from './chapter-ui.js?v=detail-1';
 import { CHAPTERS } from './chapters.js';
 import { createSession, decodeSession, startNew, startReplay, sessionAction } from './play-session.js';
 
@@ -52,10 +53,11 @@ function openWatch() {
   let unavailable = false;
   const fallback = () => {
     if (unavailable) return; unavailable = true;
-    $('watch-stage').innerHTML = `<p class="inspect-help">この環境では3D表示が使えません。写真で同じ品物を調べられます。</p><div class="fallback-photos"><img src="./assets/watch-front.png" alt="18時40分で止まった時計の表"><button class="quiet" id="fallback-back">写真で裏側を確認する</button></div>`;
-    $('fallback-back').onclick = () => { $('watch-stage').innerHTML = '<div class="fallback-photos"><img src="./assets/watch-back.png" alt="時計の裏。製造番号417"></div>'; discovered(); };
+    $('watch-stage').innerHTML = `<p class="inspect-help">この環境では3D表示が使えません。写真で同じ品物を調べられます。</p><div class="fallback-photos">${itemImage('watch', '懐中時計')}<button class="quiet" id="fallback-back">写真で裏側を確認する</button></div>`;
+    $('fallback-back').onclick = () => { $('watch-stage').innerHTML = itemImage('watch', '懐中時計', { back: true }); discovered(); };
   };
-  openInspection('懐中時計', '手に取って、角度を変える', `<div id="watch-stage"><canvas class="inspection-canvas" id="watch-canvas" tabindex="0" role="img" aria-label="3Dの懐中時計。ドラッグ、または矢印キーで上下左右に回して調べる。" aria-describedby="watch-help"></canvas><p class="inspect-help" id="watch-help">指でドラッグして、くるりと回す。<br>二本指で拡大・縮小 / キーボードは矢印キー</p><div class="rotation-tools"><button class="quiet" id="zoom-in" aria-label="時計を拡大する">＋ 拡大</button><button class="quiet" id="zoom-out" aria-label="時計を縮小する">− 縮小</button><button class="quiet" id="reset-angle">正面へ戻す</button></div></div><p class="discovery ${state.viewed.includes('watchBack') ? 'found' : ''}" id="watch-discovery" role="status" aria-live="polite">${state.viewed.includes('watchBack') ? '裏ぶたに、製造番号「417」が刻まれている。' : '針は18時40分で止まっている。ほかの面も調べてみよう。'}</p>`, () => {
+  openInspection('懐中時計', '手に取って、角度を変える', `${imageTools()}${itemImage('watch', '懐中時計')}<div id="watch-stage" hidden><canvas class="inspection-canvas" id="watch-canvas" tabindex="0" role="img" aria-label="3Dの懐中時計。ドラッグ、または矢印キーで上下左右に回して調べる。" aria-describedby="watch-help"></canvas><p class="inspect-help" id="watch-help">指でドラッグして、くるりと回す。<br>二本指で拡大・縮小 / キーボードは矢印キー</p><div class="rotation-tools"><button class="quiet" id="zoom-in" aria-label="時計を拡大する">＋ 拡大</button><button class="quiet" id="zoom-out" aria-label="時計を縮小する">− 縮小</button><button class="quiet" id="reset-angle">正面へ戻す</button></div></div><p class="discovery ${state.viewed.includes('watchBack') ? 'found' : ''}" id="watch-discovery" role="status" aria-live="polite">${state.viewed.includes('watchBack') ? '裏ぶたに、製造番号「417」が刻まれている。' : '針は18時40分で止まっている。ほかの面も調べてみよう。'}</p>`, () => {
+    bindImageTools($('inspect-content'), $('watch-stage'));
     viewer = createWatchViewer($('watch-canvas'), { onDiscover: discovered, onUnavailable: fallback });
     if (!unavailable) { $('zoom-in').onclick = () => viewer?.zoom(-0.4); $('zoom-out').onclick = () => viewer?.zoom(0.4); $('reset-angle').onclick = () => viewer?.reset(); }
   });
@@ -64,7 +66,7 @@ $('watch').onclick = openWatch;
 $('ticket').onclick = () => { collect('ticket'); openInspection('古い切符', '受け取り棚', '<div class="ticket-large">月待駅 発行 / 乗車券<br><strong>月待 → ░░</strong><br>10月31日　最終07便</div><p>行き先の文字だけがかすれて読めない。<br>日付、乗車駅、列車番号ははっきり残っている。</p>'); };
 $('drawer').onclick = () => { collect('repairLedger'); openInspection('資料の引き出し', 'そっと開けると、修理の記録がある', paper('repairLedger', ['製造番号', '依頼者', '作業']) + '<p class="inspect-help">品物に刻まれた番号を、台帳の番号と照らし合わせる。</p>'); };
 $('timetable').onclick = () => { collect('timetable'); openInspection('壁の運行表', '十月三十一日 · 最後の日', paper('timetable', ['便名', '出発時刻', '行き先']) + '<p class="inspect-help">切符の便名と、同じ日の運行表を照らし合わせる。</p>'); };
-$('wall-clock').onclick = () => openInspection('壁の駅時計', '動かなくなった駅の時間', '<article class="paper"><h3>18時40分</h3><p>壁の駅時計は、18時40分で止まっている。</p><p>時刻だけでは、品物の持ち主や返却先は分からない。品物と資料を照らし合わせよう。</p></article>');
+$('wall-clock').onclick = () => openInspection('壁の駅時計', '動かなくなった駅の時間', stationClockImage() + '<article class="paper"><p>壁の駅時計は、18時40分で止まっている。</p><p>時刻だけでは、品物の持ち主や返却先は分からない。品物と資料を照らし合わせよう。</p></article>');
 function form(message = '') {
   if (state.returned) return showReceipt();
   const options = (values, chosen) => '<option value="">選んでください</option>' + values.map(value => `<option ${chosen === value ? 'selected' : ''}>${escape(value)}</option>`).join('');

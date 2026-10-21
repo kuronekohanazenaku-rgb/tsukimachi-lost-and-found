@@ -1,6 +1,7 @@
 import { CHAPTERS, LAST_WORDS, chapterCanSubmit } from './chapters.js';
 import { EVIDENCE, RECOLLECTION } from './game.js';
-import { createItemViewer } from './item-viewer.js';
+import { createItemViewer } from './item-viewer.js?v=detail-1';
+import { itemImage, imageTools, bindImageTools } from './inspection-art.js';
 import { visibleChapterDocuments, dropAction, pieceLabel } from './chapter-presentation.js';
 
 const numbers = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
@@ -42,7 +43,8 @@ export function createChapterUI(api) {
   }
   function openItem() {
     const { c, p } = current(); if (!p.received) act({ type: 'CH_RECEIVE' }); act({ type: 'CH_VIEW', id: 'item' });
-    open(c.item, '手に取って、角度を変える', `<div id="item-stage"><canvas id="item-canvas" class="inspection-canvas" tabindex="0" role="img" aria-label="${esc(c.item)}。ドラッグか矢印キーで回して調べる。"></canvas><p class="inspect-help">指でドラッグして回す · 二本指で拡大と縮小</p><div class="rotation-tools"><button class="quiet" id="item-zoom-in">＋ 拡大</button><button class="quiet" id="item-zoom-out">− 縮小</button><button class="quiet" id="item-reset">正面へ戻す</button></div></div>${docPaper('item')}${c.puzzle ? `<button class="primary" id="item-puzzle">${esc(c.puzzle.title)}</button>` : ''}${p.solved && c.docs.reveal ? '<button class="quiet" id="item-reveal">開いた記録を読む</button>' : ''}`, () => {
+    open(c.item, '手に取って、角度を変える', `${imageTools()}${itemImage(c.art, c.item)}<div id="item-stage" hidden><canvas id="item-canvas" class="inspection-canvas" tabindex="0" role="img" aria-label="${esc(c.item)}。ドラッグか矢印キーで回して調べる。"></canvas><p class="inspect-help">指でドラッグして回す · 二本指で拡大と縮小</p><div class="rotation-tools"><button class="quiet" id="item-zoom-in">＋ 拡大</button><button class="quiet" id="item-zoom-out">− 縮小</button><button class="quiet" id="item-reset">正面へ戻す</button></div></div>${docPaper('item')}${c.puzzle ? `<button class="primary" id="item-puzzle">${esc(c.puzzle.title)}</button>` : ''}${p.solved && c.docs.reveal ? '<button class="quiet" id="item-reveal">開いた記録を読む</button>' : ''}`, () => {
+      bindImageTools($('inspect-content'), $('item-stage'));
       let fallback = false;
       const objectViewer = createItemViewer($('item-canvas'), c.art, { solved: p.solved, onUnavailable: () => { fallback = true; $('item-stage').innerHTML = `<div class="fallback-photos"><p class="inspect-help">この環境では3Dを使えないため、写真で品物を調べます。</p><img src="./assets/${c.art}.png" alt="${esc(c.item)}"></div>`; } });
       setViewer(objectViewer);
